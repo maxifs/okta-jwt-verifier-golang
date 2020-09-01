@@ -20,17 +20,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/okta/okta-jwt-verifier-golang/adaptors"
 	"github.com/okta/okta-jwt-verifier-golang/adaptors/lestrratGoJwx"
 	"github.com/okta/okta-jwt-verifier-golang/discovery"
 	"github.com/okta/okta-jwt-verifier-golang/discovery/oidc"
 	"github.com/okta/okta-jwt-verifier-golang/errors"
 	"github.com/patrickmn/go-cache"
-	"net/http"
-	"regexp"
-	"strings"
-	"sync"
-	"time"
 )
 
 var metaDataCache *cache.Cache = cache.New(5*time.Minute, 10*time.Minute)
@@ -172,9 +173,11 @@ func (j *JwtVerifier) VerifyIdToken(jwt string) (*Jwt, error) {
 		return &myJwt, fmt.Errorf("the `Issued At` was not able to be validated. %s", err.Error())
 	}
 
-	err = j.validateNonce(token["nonce"])
-	if err != nil {
-		return &myJwt, fmt.Errorf("the `Nonce` was not able to be validated. %s", err.Error())
+	if j.ClaimsToValidate["nonce"] != "" {
+		err = j.validateNonce(token["nonce"])
+		if err != nil {
+			return &myJwt, fmt.Errorf("the `Nonce` was not able to be validated. %s", err.Error())
+		}
 	}
 
 	return &myJwt, nil
